@@ -42,8 +42,8 @@ class CustomerChurnAPITest(unittest.TestCase):
             json=customer
         )
 
-        # INTENTIONAL FAILURE FOR PRACTICAL DEMONSTRATION
-        self.assertEqual(response.status_code, 500)
+        # Final working version
+        self.assertEqual(response.status_code, 200)
 
         data = response.get_json()
 
