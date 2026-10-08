@@ -40,15 +40,26 @@ jobs:
       - name: Check ML quality gate
         run: python quality_gate.py
 
-      - name: Run automated ML tests
+      - name: Run ML tests
         run: python -m unittest discover -v
 
-      - name: Upload validated ML artifacts
+      - name: Run Customer Churn API tests
+        run: python -m unittest test_app.py -v
+
+      - name: Prepare release candidate
+        run: |
+          mkdir -p release
+          cp customer_churn_model.pkl release/
+          cp metrics.json release/
+          cp app.py release/
+          cp requirements.txt release/
+          cp test_app.py release/
+          zip -r customer-churn-release.zip release
+
+      - name: Upload release candidate
         uses: actions/upload-artifact@v7
         with:
-          name: customer-churn-ml-artifacts
-          path: |
-            customer_churn_model.pkl
-            metrics.json
+          name: customer-churn-release
+          path: customer-churn-release.zip
           if-no-files-found: error
           retention-days: 7
