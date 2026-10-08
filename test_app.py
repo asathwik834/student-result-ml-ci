@@ -42,7 +42,9 @@ class CustomerChurnAPITest(unittest.TestCase):
             json=customer
         )
 
-        self.assertEqual(response.status_code, 200)
+        # INTENTIONALLY CHANGED TO 500
+        # This is for the controlled failure demonstration.
+        self.assertEqual(response.status_code, 500)
 
         data = response.get_json()
 
