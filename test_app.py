@@ -42,8 +42,7 @@ class CustomerChurnAPITest(unittest.TestCase):
             json=customer
         )
 
-        # INTENTIONALLY CHANGED TO 500
-        # This is for the controlled failure demonstration.
+        # INTENTIONAL FAILURE FOR PRACTICAL DEMONSTRATION
         self.assertEqual(response.status_code, 500)
 
         data = response.get_json()
