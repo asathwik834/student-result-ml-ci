@@ -1,41 +1,96 @@
+import json
 import os
 import unittest
+
 import joblib
+import pandas as pd
 
-from train_model import df, model, accuracy
 
+class TestMLPipeline(unittest.TestCase):
 
-class TestTrainModel(unittest.TestCase):
+    def test_dataset_created(self):
+        self.assertTrue(
+            os.path.exists("customer_churn_synthetic_raw.csv")
+        )
 
-    def test_dataset_not_empty(self):
-        self.assertGreater(len(df), 0)
+    def test_model_created(self):
+        self.assertTrue(
+            os.path.exists("customer_churn_model.pkl")
+        )
 
-    def test_required_columns_exist(self):
-        required_columns = {
-            "internal_marks",
-            "attendance",
-            "assignment_score",
-            "result"
-        }
-
-        self.assertTrue(required_columns.issubset(df.columns))
-
-    def test_result_is_binary(self):
-        self.assertTrue(set(df["result"].unique()).issubset({0, 1}))
-
-    def test_model_is_fitted(self):
-        self.assertTrue(hasattr(model, "coef_"))
+    def test_metrics_created(self):
+        self.assertTrue(
+            os.path.exists("metrics.json")
+        )
 
     def test_accuracy_is_valid(self):
+        with open("metrics.json", "r") as file:
+            metrics = json.load(file)
+
+        accuracy = metrics["accuracy"]
+
         self.assertGreaterEqual(accuracy, 0.0)
         self.assertLessEqual(accuracy, 1.0)
 
-    def test_model_file_exists(self):
-        self.assertTrue(os.path.exists("model.joblib"))
+    def test_model_prediction(self):
+        model = joblib.load("customer_churn_model.pkl")
 
-    def test_model_can_be_loaded(self):
-        loaded_model = joblib.load("model.joblib")
-        self.assertTrue(hasattr(loaded_model, "predict"))
+        sample = pd.DataFrame([{
+            "Age": 35,
+            "Gender": "Male",
+            "TenureMonths": 24,
+            "MonthlyCharges": 70.0,
+            "ContractType": "Month-to-month",
+            "InternetService": "Fiber optic",
+            "PaymentMethod": "Electronic check",
+            "SupportCalls": 2,
+            "LatePayments": 0,
+            "PaperlessBilling": "Yes"
+        }])
+
+        prediction = model.predict(sample)[0]
+
+        self.assertIn(int(prediction), [0, 1])
+
+    def test_high_risk_customer(self):
+        model = joblib.load("customer_churn_model.pkl")
+
+        sample = pd.DataFrame([{
+            "Age": 25,
+            "Gender": "Male",
+            "TenureMonths": 2,
+            "MonthlyCharges": 95.0,
+            "ContractType": "Month-to-month",
+            "InternetService": "Fiber optic",
+            "PaymentMethod": "Electronic check",
+            "SupportCalls": 8,
+            "LatePayments": 5,
+            "PaperlessBilling": "Yes"
+        }])
+
+        prediction = model.predict(sample)[0]
+
+        self.assertIn(int(prediction), [0, 1])
+
+    def test_low_risk_customer(self):
+        model = joblib.load("customer_churn_model.pkl")
+
+        sample = pd.DataFrame([{
+            "Age": 45,
+            "Gender": "Female",
+            "TenureMonths": 60,
+            "MonthlyCharges": 50.0,
+            "ContractType": "Two year",
+            "InternetService": "DSL",
+            "PaymentMethod": "Bank transfer",
+            "SupportCalls": 0,
+            "LatePayments": 0,
+            "PaperlessBilling": "No"
+        }])
+
+        prediction = model.predict(sample)[0]
+
+        self.assertIn(int(prediction), [0, 1])
 
 
 if __name__ == "__main__":
