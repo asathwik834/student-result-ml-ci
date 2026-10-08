@@ -49,6 +49,6 @@ jobs:
           name: customer-churn-ml-artifacts
           path: |
             customer_churn_model_missing.pkl
-            metrics.json
+            metrics_missing.json
           if-no-files-found: error
           retention-days: 7
