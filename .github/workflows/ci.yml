@@ -1,14 +1,13 @@
+
 name: Customer Churn ML CI
 
 on:
   push:
     branches:
       - main
-
   pull_request:
     branches:
       - main
-
   workflow_dispatch:
 
 permissions:
@@ -19,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v7
 
@@ -63,3 +61,46 @@ jobs:
           path: customer-churn-release.zip
           if-no-files-found: error
           retention-days: 7
+
+      - name: Build Docker image
+        run: docker build -t customer-churn-api:${{ github.sha }} .
+
+      - name: Start Docker container
+        run: |
+          docker run -d \
+            --name customer-churn-container \
+            -p 5001:5000 \
+            customer-churn-api:${{ github.sha }}
+
+      - name: Wait for application health
+        run: |
+          for i in {1..15}; do
+            if curl --fail --silent http://localhost:5001/; then
+              echo "Application is ready."
+              exit 0
+            fi
+            echo "Waiting for application... attempt $i"
+            sleep 2
+          done
+          echo "Application did not become ready."
+          docker logs customer-churn-container
+          exit 1
+
+      - name: Test prediction endpoint
+        run: |
+          response=$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"Age":35,"Gender":"Male","TenureMonths":12,"MonthlyCharges":75.5,"ContractType":"Month-to-month","InternetService":"Fiber optic","PaymentMethod":"Electronic check","SupportCalls":3,"LatePayments":1,"PaperlessBilling":"Yes"}' \
+            http://localhost:5001/predict)
+
+          echo "Prediction response: $response"
+          echo "$response" | grep -q '"prediction"'
+
+      - name: Show Docker container logs
+        if: always()
+        run: docker logs customer-churn-container || true
+
+      - name: Stop and remove Docker container
+        if: always()
+        run: docker rm -f customer-churn-container || true
